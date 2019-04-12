@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 import os
 import pwd
 import grp
@@ -90,7 +90,11 @@ def check_auth(user, passwd, allowusr, allowgr):
                     return True
                 # check allowed groups
                 if allowgr:
-                    groups = data['memberOf']
+                    try:
+                        groups = data['memberOf']
+                    except:
+                        # Not a member of any groups
+                        return False
                     if 'msSFU30PosixMemberOf' in data.keys():
                         groups += data['msSFU30PosixMemberOf']
                     for g in [x.lower().strip() for x in allowgr.split(',')]:
