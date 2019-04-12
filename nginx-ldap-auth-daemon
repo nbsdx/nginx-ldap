@@ -90,11 +90,8 @@ def check_auth(user, passwd, allowusr, allowgr):
                     return True
                 # check allowed groups
                 if allowgr:
-                    try:
-                        groups = data['memberOf']
-                    except:
-                        # Not a member of any groups
-                        return False
+                    # Default to empty list if not present.
+                    groups = data.get('memberOf', [])
                     if 'msSFU30PosixMemberOf' in data.keys():
                         groups += data['msSFU30PosixMemberOf']
                     for g in [x.lower().strip() for x in allowgr.split(',')]:
