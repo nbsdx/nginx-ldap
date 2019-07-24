@@ -7,7 +7,6 @@ import signal
 import base64
 import ldap
 import argparse
-import logging
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
 # -----------------------------------------------------------------------------
@@ -30,9 +29,6 @@ class AuthHTTPServer(ThreadingMixIn, HTTPServer):
 #    pass
 # -----------------------------------------------------------------------------
 conf = {}
-
-logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s', level=logging.INFO)
-logger = logging.getLogger('auth_logger')
 
 def read_conf(fname):
     """read file in pam_ldap format"""
@@ -64,7 +60,7 @@ def drop_privileges(uid_name='nobody', gid_name='nogroup'):
 
 
 def exit_handler(signal, frame):
-    logger.info('LDAP Auth Server shutting down.')
+    print 'LDAP Auth Server shutting down.'
     sys.exit(0)
 
 
@@ -117,11 +113,12 @@ class LDAPAuthHandler(BaseHTTPRequestHandler):
             auth_header = self.headers.getheader('Authorization')
             if auth_header and auth_header.lower().startswith('basic '):
                 user, passwd = base64.b64decode(auth_header[6:]).split(':', 1)
+                print "Login Attempt: " + user
                 if check_auth(user, passwd, self.headers.getheader('X-Ldap-Allowed-Usr'), self.headers.getheader('X-Ldap-Allowed-Grp')):
-                    logger.info("Login Attempt by {} Accepted".format(user))
+                    print "Login Success: " + user
                     self.send_response(200)
                     return
-                logger.info("Login Attempt by {} Rejected".format(user))
+                print "Login Rejected: " + user
             self.send_response(401)
             realm = self.headers.getheader('X-Ldap-Realm')
             if not realm:
@@ -129,6 +126,7 @@ class LDAPAuthHandler(BaseHTTPRequestHandler):
             self.send_header('WWW-Authenticate', 'Basic realm="{}"'.format(realm))
             self.send_header('Cache-Control', 'no-cache')
         except:
+            tracepack.print_exc()
             self.send_response(500)
             self.send_header('X-Error-Message', sys.exc_info()[1])
         finally:
@@ -147,5 +145,5 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, exit_handler)
 
     server = AuthHTTPServer((args.host, args.port), LDAPAuthHandler)
-    logger.info('Serving LDAP Auth on {}:{}'.format(args.host, args.port))
+    print 'Serving LDAP Auth on {}:{}'.format(args.host, args.port)
     server.serve_forever()
